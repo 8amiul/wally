@@ -1,0 +1,94 @@
+#!/bin/bash
+mkdir /tmp/wally/
+mkdir $HOME/.cache/wally/Downloads/
+
+array=( "curl" "dmenu" "sxiv" "tidy" )
+for i in "${array[@]}"
+do
+    command -v $i >/dev/null 2>&1 || { 
+        echo >&2 "$i required"; 
+        exit 1; 
+    }
+done
+
+page_num="5"
+CACHE_CURL="/tmp/wally/CURL"
+CACHE_CURL_2="/tmp/wally/CURL2"
+CACHE_CURL_3="/tmp/wally/CURL3"
+DL_STUFF="/tmp/wally/DL_STUFF"
+TO_DL="/tmp/wally/DL"
+DL_LOC="$HOME/.cache/wally/Downloads/"
+
+search () {
+
+    noplus="$(printf "hot\ntoplist\nrandom\nlatest\n                         " |  dmenu)"
+    search="$(echo "$noplus" | sed 's/ /+/g')"
+	CHECK="$(grep -c "+" <(echo $search))"
+
+if [[ "$search" = "hot" ]] || \
+   [[ "$search" = "toplist" ]] || \
+   [[ "$search" = "random" ]] || \
+   [[ "$search" = "latest" ]]; then
+	page_curl_cato
+else
+	page_curl_search
+fi
+
+}
+
+page_curl_search () {
+
+	echo "function -> page_curl_search"
+for i in $(seq $page_num); do
+	curl -s "https://wallhaven.cc/search?q=$search&page=$i" | tidy >> $CACHE_CURL
+done
+
+}
+
+page_curl_cato () {
+
+	echo "function -> page_curl_cato"
+for i in $(seq $page_num); do
+	echo "https://wallhaven.cc/$search?page=$i"
+     curl -s "https://wallhaven.cc/$search?page=$i" | tidy >> $CACHE_CURL
+done
+
+}
+
+scraping_th () {
+
+	grep 'https://th.wallhaven.cc/small/' $CACHE_CURL | cut -d '"' -f2 >> /tmp/wally/cache
+	mkdir /tmp/wally/th
+	wget -i /tmp/wally/cache -P /tmp/wally/th/
+	clear && title=$(sxiv -tfpo /tmp/wally/th/*)
+	echo "$title"
+
+}
+
+dl_links () {
+
+name="$(printf "$title\n" | cut -d '/' -f5 | sed 's/.jpg//g')"
+	echo "$name"
+	WCOUNT="$(echo "$name" | wc -l)"
+
+if [[ "$WCOUNT" = "1" ]]; then
+	echo "Image not defined"
+	sleep 0.8
+	rm -rf /tmp/wally/
+	exit
+else
+	clear
+fi
+
+for i in $(eval echo {1..$WCOUNT}); do
+	curl -s "https://wallhaven.cc/api/v1/w/$(printf "$name\n" | awk "NR==$i")" >> $CACHE_CURL_2
+done
+	jq '.' $CACHE_CURL_2 | grep "path" | cut -d '"' -f4 > $CACHE_CURL_3
+	wget -i $CACHE_CURL_3 -P $DL_LOC
+
+}
+
+search
+scraping_th
+dl_links
+rm -rf /tmp/wally/
