@@ -1,6 +1,5 @@
 #!/bin/bash
-mkdir /tmp/wally/
-mkdir $HOME/.cache/wally/Downloads/
+rm -rf /tmp/wally/ && mkdir /tmp/wally/
 
 array=( "curl" "dmenu" "sxiv" "tidy" )
 for i in "${array[@]}"
@@ -17,7 +16,7 @@ CACHE_CURL_2="/tmp/wally/CURL2"
 CACHE_CURL_3="/tmp/wally/CURL3"
 DL_STUFF="/tmp/wally/DL_STUFF"
 TO_DL="/tmp/wally/DL"
-DL_LOC="$HOME/.cache/wally/Downloads/"
+DL_LOC="$HOME/.local/share/wallpaper/"
 
 search () {
 
